@@ -8,9 +8,11 @@ export default async function handler(req, res) {
 
   try {
     const { recipient, message } = req.body;
-    if (!recipient || !message) return res.status(400).json({ error: 'recipient and message are required' });
+    if (!recipient || !message) {
+      return res.status(400).json({ error: 'recipient and message are required' });
+    }
 
-    const response = await fetch('https://app.philsms.com/api/v3/sms/send', {
+    const response = await fetch('https://dashboard.philsms.com/api/v3/sms/send', {
       method: 'POST',
       headers: {
         'Authorization': 'Bearer 3230|owsBRBsHBAQEd4hWoHMCqnjcdyDq9zAtlAdy5X391e6032ca',
@@ -19,14 +21,17 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         sender_id: 'PhilSMS',
-        recipient,
-        message
+        recipient: recipient,
+        message: message
       })
     });
 
     const data = await response.json();
+    console.log('PhilSMS response:', JSON.stringify(data));
     return res.status(200).json(data);
+
   } catch (err) {
+    console.error('Error:', err.message);
     return res.status(500).json({ error: err.message });
   }
 }
