@@ -7,6 +7,21 @@ const UNISMS_URL       = "https://unismsapi.com/api/sms";
 const UNISMS_SENDER_ID = "UniSMS"; // replace once you register your own Sender ID
 
 module.exports = async function handler(req, res) {
+  // ── CORS ──
+  // Your dashboard runs on junkout-46931.web.app, a different domain from
+  // this Vercel deployment. Browsers send a preflight OPTIONS request before
+  // any cross-site POST with a JSON body, and reject the real request if
+  // that preflight isn't answered correctly. Every response — including
+  // errors below — needs these headers, not just the OPTIONS one.
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  if (req.method === "OPTIONS") {
+    res.status(200).end();
+    return;
+  }
+
   // Only allow POST, same as before
   if (req.method !== "POST") {
     res.status(405).json({ status: "error", message: "Method not allowed" });
