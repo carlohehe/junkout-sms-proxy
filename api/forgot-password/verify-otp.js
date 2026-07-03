@@ -1,6 +1,6 @@
 // api/forgot-password/verify-otp.js
 const crypto = require("crypto");
-const { db, normalizePhone, setCors } = require("./_lib");
+const { db, normalizePhone, setCors } = require("./otp-lib");
 
 const MAX_ATTEMPTS = 5;
 
