@@ -1,5 +1,5 @@
 // api/forgot-password/reset-password.js
-const { db, auth, normalizePhone, setCors } = require("./_lib");
+const { db, auth, normalizePhone, setCors } = require("./otp-lib");
 
 module.exports = async function handler(req, res) {
   setCors(res);
