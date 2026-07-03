@@ -4,7 +4,7 @@
 // (overwrite your existing api/sms.js file with this one)
 
 const UNISMS_URL       = "https://unismsapi.com/api/sms";
-const UNISMS_SENDER_ID = "UNISOFT"; // your assigned test Sender ID from the UniSMS dashboard
+const UNISMS_SENDER_ID = "UnisoftDEV"; // replace once you register your own Sender ID
 
 module.exports = async function handler(req, res) {
   // ── CORS ──
