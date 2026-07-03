@@ -1,37 +1,67 @@
-export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+// api/sms.js
+// UniSMS proxy for JunkOut — replaces the old PhilSMS proxy.
+// Deploy target: same Vercel project as junkout-sms-proxy.vercel.app
+// (overwrite your existing api/sms.js file with this one)
 
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+const UNISMS_URL       = "https://unismsapi.com/api/sms";
+const UNISMS_SENDER_ID = "UniSMS"; // replace once you register your own Sender ID
+
+module.exports = async function handler(req, res) {
+  // Only allow POST, same as before
+  if (req.method !== "POST") {
+    res.status(405).json({ status: "error", message: "Method not allowed" });
+    return;
+  }
+
+  const { recipient, message } = req.body || {};
+  if (!recipient || !message) {
+    res.status(400).json({ status: "error", message: "recipient and message are required" });
+    return;
+  }
+
+  // Normalize to +63 format, same logic your Cloud Function already uses
+  let number = String(recipient).trim().replace(/\s+/g, "");
+  if (number.startsWith("09"))  number = "+63" + number.slice(1);
+  if (number.startsWith("639")) number = "+"  + number;
+  if (!number.startsWith("+63")) {
+    res.status(400).json({ status: "error", message: "Invalid phone number format" });
+    return;
+  }
+
+  const secretKey = process.env.UNISMS_SECRET_KEY;
+  if (!secretKey) {
+    console.error("UNISMS_SECRET_KEY environment variable is not set");
+    res.status(500).json({ status: "error", message: "Server misconfiguration: missing SMS key" });
+    return;
+  }
 
   try {
-    const { recipient, message } = req.body;
-    if (!recipient || !message) {
-      return res.status(400).json({ error: 'recipient and message are required' });
-    }
-
-    const response = await fetch('https://dashboard.philsms.com/api/v3/sms/send', {
-      method: 'POST',
+    const response = await fetch(UNISMS_URL, {
+      method: "POST",
       headers: {
-        'Authorization': 'Bearer 3230|owsBRBsHBAQEd4hWoHMCqnjcdyDq9zAtlAdy5X391e6032ca',
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        "Content-Type": "application/json",
+        "Authorization": "Basic " + Buffer.from(secretKey + ":").toString("base64"),
       },
       body: JSON.stringify({
-        sender_id: 'PhilSMS',
-        recipient: recipient,
-        message: message
-      })
+        recipient: number,
+        content:   message,
+        sender_id: UNISMS_SENDER_ID,
+      }),
     });
 
     const data = await response.json();
-    console.log('PhilSMS response:', JSON.stringify(data));
-    return res.status(200).json(data);
 
+    if (!response.ok) {
+      console.error("UniSMS error:", data);
+      res.status(response.status).json({ status: "error", message: "UniSMS rejected the message", detail: data });
+      return;
+    }
+
+    // Keep the same success shape your admin_dashboard.html already checks for
+    // (it looks for data.status === 'success' OR resp.ok)
+    res.status(200).json({ status: "success", data });
   } catch (err) {
-    console.error('Error:', err.message);
-    return res.status(500).json({ error: err.message });
+    console.error("UniSMS request failed:", err);
+    res.status(500).json({ status: "error", message: "Failed to reach UniSMS" });
   }
-}
+};
